@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ezops"
+version = "0.1.0"
+description = "A Smart Containerizer CLI and DevOps platform"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "typer>=0.9.0",
+    "rich>=13.0.0",
+]
+
+[project.scripts]
+ezops = "ezops.main:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ezops"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q"
+testpaths = [
+    "tests",
+]
