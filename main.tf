@@ -1,49 +1,56 @@
 terraform {
   required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = "~> 4.0"
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
     }
   }
 }
 
-provider "google" {
-  project = "my-gcp-project-id"
-  region  = "us-central1"
-  zone    = "us-central1-a"
+provider "aws" {
+  region = "us-east-1"
 }
 
-resource "google_compute_firewall" "ezops_firewall" {
-  name    = "ezops-python-firewall"
-  network = "default"
+resource "aws_security_group" "ezops_sg" {
+  name        = "ezops_python_sg"
+  description = "Allow HTTP, SSH and App traffic"
 
-  allow {
-    protocol = "tcp"
-    ports    = ["22", "80", "8000"]
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  source_ranges = ["0.0.0.0/0"]
-  target_tags   = ["ezops-app"]
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Specific port for python app
+  ingress {
+    from_port   = 8000
+    to_port     = 8000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
-resource "google_compute_instance" "ezops_server" {
-  name         = "ezops-python-server"
-  machine_type = "e2-micro"
-  
-  boot_disk {
-    initialize_params {
-      image = "ubuntu-os-cloud/ubuntu-2204-lts"
-    }
-  }
+resource "aws_instance" "ezops_server" {
+  ami           = "ami-0c7217cdde317cfec" # Ubuntu 22.04 LTS us-east-1
+  instance_type = "t2.micro"
+  vpc_security_group_ids = [aws_security_group.ezops_sg.id]
 
-  network_interface {
-    network = "default"
-    access_config {
-      # Ephemeral public IP
-    }
-  }
-
-  metadata_startup_script = <<-EOF
+  user_data = <<-EOF
 #!/bin/bash
 sudo apt-get update
 sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
@@ -57,10 +64,13 @@ sudo usermod -aG docker ubuntu
 
 EOF
 
-  tags = ["ezops-app"]
+  tags = {
+    Name = "EzOps_Python_Server"
+    ManagedBy = "EzOps"
+  }
 }
 
 output "public_ip" {
-  value       = google_compute_instance.ezops_server.network_interface.0.access_config.0.nat_ip
-  description = "Public IP of the Compute Engine instance"
+  value       = aws_instance.ezops_server.public_ip
+  description = "Public IP of the EC2 instance"
 }
