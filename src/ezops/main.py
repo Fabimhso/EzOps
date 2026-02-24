@@ -35,8 +35,31 @@ def init(
     # 2. Gera os arquivos baseados na stack detectada
     generator_engine.generate_files(path, stack_info)
     
-    console.print("[bold green]✨ Containerização concluída com sucesso![/bold green]")
-    console.print("Recomendado: rode [bold yellow]docker compose up --build[/bold yellow]")
+@app.command()
+def iac(
+    path: str = typer.Argument(
+        ".", help="O diretório do projeto para analisar e gerar a infraestrutura (Terraform)"
+    )
+):
+    """
+    Analisa o diretório e gera arquivos Terraform (main.tf) para provisionar 
+    a infraestrutura necessária na Nuvem (Ex: AWS EC2).
+    """
+    console.print(f"[bold blue]🚀 Iniciando EzOps IaC Generator no diretório:[/bold blue] {path}")
+    
+    stack_info = analyzer_engine.analyze_directory(path)
+    
+    if not stack_info:
+        console.print("[bold red]❌ Não foi possível detectar a stack do projeto para IaC.[/bold red]")
+        raise typer.Exit(code=1)
+        
+    console.print(f"[bold green]✅ Stack detectada para IaC:[/bold green] {stack_info.name} (v{stack_info.version})")
+    
+    from ezops.generator import iac_generator
+    iac_generator.generate_terraform(path, stack_info)
+    
+    console.print("[bold green]✨ Arquivo main.tf gerado com sucesso![/bold green]")
+    console.print("Recomendado: rode [bold yellow]terraform init && terraform apply[/bold yellow]")
 
 if __name__ == "__main__":
     app()

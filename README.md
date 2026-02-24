@@ -40,6 +40,21 @@ The DevOps/MLOps routine often involves hours spent on manual and repetitive tas
 
  **Simple ML Model Serving:** Makes packaging and deploying Machine Learning models (via FastAPI + Docker) painless, without dependency struggles.
 
+### 3. Rodando as integrações AWS (MVP 3 Phase 2)
+O Backend do EzOps agora possui integração nativa com a AWS via `boto3`.
+Ao bater na rota `http://localhost:8080/api/containers`, as instâncias EC2 gerenciadas por você na sua conta serão retornadas junto com seus containers locais na aba **Containers** do Front-End.
+Caso as credenciais não estejam configuradas em `~/.aws/credentials`, ele irá silenciar o erro e listar apenas os da máquina.
+
+---
+
+## 🛠 Entendendo o `ezops iac` (Infra-as-Code)
+Em qualquer repositório, execute:
+```bash
+source .venv/bin/activate
+ezops iac .
+```
+O EzOps irá ler o contexto do projeto da mesma forma que o `ezops init` e criar instantaneamente um `main.tf` customizado da **AWS** (HCL do Terraform) já mapeando portas de segurança e com `user_data` de provisionamento focado em Docker.
+
 ---
 
 ## Technology Stack
