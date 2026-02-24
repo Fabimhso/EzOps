@@ -86,13 +86,26 @@ The CLI will automatically analyze your project and generate an optimized `Docke
 
 ---
 
-## 🌐 Running the EzOps Dashboard (UI)
+## 🌐 Running the EzOps Dashboard & Backend (UI)
 
-For a visual experience, jump into the dashboard directory and run our React Next.js interface:
+For a complete visual experience, you need to run both the FastAPI Backend and the Next.js Dashboard.
 
+### 1. Start the FastAPI Backend (Docker Client)
+The backend requires access to your local Docker daemon (`/var/run/docker.sock`).
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+uvicorn src.api.main:app --port 8080 --reload
+```
+
+### 2. Start the Next.js Dashboard
+In a new terminal window, start the frontend interface:
 ```bash
 cd dashboard
 npm install
 npm run dev
 ```
-Access `http://localhost:3000` to interact with our mock containers and secrets manager securely.
+
+Access `http://localhost:3000` to interact with your live containers and secrets manager securely!
