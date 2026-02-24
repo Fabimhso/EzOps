@@ -1,10 +1,10 @@
-# 🚀 EzOps — Simplified Deployment & Orchestration Platform
+# EzOps — Simplified Deployment & Orchestration Platform
 
 **EzOps** is an innovative platform consisting of a smart **CLI** and **Web Dashboard**, designed to revolutionize and simplify the lives of DevOps and MLOps engineers. The tool unifies and automates the most repetitive day-to-day tasks, with a strong focus on **security** and **containerization**.
 
 ---
 
-## 🎯 The Problem We Solve
+## The Problem We Solve
 
 The DevOps/MLOps routine often involves hours spent on manual and repetitive tasks:
 
@@ -18,9 +18,9 @@ The DevOps/MLOps routine often involves hours spent on manual and repetitive tas
 
 ---
 
-## ✨ Core Features
+## Core Features
 
-* 🤖 **Smart Containerizer:** Analyzes your project and automatically generates `Dockerfile` and `docker-compose.yml` files following optimization and security best practices.
+ **Smart Containerizer:** Analyzes your project and automatically generates `Dockerfile` and `docker-compose.yml` files following optimization and security best practices.
 
   * **Currently Supported Languages:**
 
@@ -30,19 +30,19 @@ The DevOps/MLOps routine often involves hours spent on manual and repetitive tas
     * Java (Maven or Gradle, supports Spring Boot)
     * Ruby (Rails or Sinatra)
 
-* 🔐 **Secure Secrets Manager:** Integrated security vault that allows storing and injecting secrets directly into containers at runtime, ensuring sensitive credentials are never stored in plain text.
+   **Secure Secrets Manager:** Integrated security vault that allows storing and injecting secrets directly into containers at runtime, ensuring sensitive credentials are never stored in plain text.
 
-* 🚀 **Deploy Pipeline Wizard:** Assistant for automatically creating CI/CD pipelines (GitHub Actions / GitLab CI) with built-in best practices for security, linting, and testing.
+ **Deploy Pipeline Wizard:** Assistant for automatically creating CI/CD pipelines (GitHub Actions / GitLab CI) with built-in best practices for security, linting, and testing.
 
-* 📊 **Centralized Health Dashboard:** Intuitive web panel to monitor containers, inspect logs, and track real-time metrics.
+ **Centralized Health Dashboard:** Intuitive web panel to monitor containers, inspect logs, and track real-time metrics.
 
-* ⏪ **Instant Rollback (1-Click):** Deployment version control that allows reverting any system to a previous stable version with a single click.
+ **Instant Rollback (1-Click):** Deployment version control that allows reverting any system to a previous stable version with a single click.
 
-* 🧠 **Simple ML Model Serving:** Makes packaging and deploying Machine Learning models (via FastAPI + Docker) painless, without dependency struggles.
+ **Simple ML Model Serving:** Makes packaging and deploying Machine Learning models (via FastAPI + Docker) painless, without dependency struggles.
 
 ---
 
-## 🏗️ Technology Stack
+## Technology Stack
 
 The EzOps ecosystem is designed using modern and high-performance tools:
 
@@ -56,7 +56,7 @@ The EzOps ecosystem is designed using modern and high-performance tools:
 
 ---
 
-## 🔐 Security Commitment (DevSecOps)
+## Security Commitment (DevSecOps)
 
 Security is not secondary in EzOps — it is the foundation:
 
@@ -66,7 +66,7 @@ Security is not secondary in EzOps — it is the foundation:
 
 ---
 
-## 🚀 Running EzOps Locally (CLI)
+## Running EzOps Locally (CLI)
 
 EzOps is under active development. To run the first version of our CLI (Smart Containerizer), clone the repository and execute the commands below using **Python 3.9+**:
 
@@ -86,7 +86,7 @@ The CLI will automatically analyze your project and generate an optimized `Docke
 
 ---
 
-## 🌐 Running the EzOps Dashboard & Backend (UI)
+## Running the EzOps Dashboard & Backend (UI)
 
 For a complete visual experience, you need to run both the FastAPI Backend and the Next.js Dashboard.
 
