@@ -47,13 +47,17 @@ Caso as credenciais não estejam configuradas em `~/.aws/credentials`, ele irá 
 
 ---
 
-## 🛠 Entendendo o `ezops iac` (Infra-as-Code)
+## 🛠 Entendendo o `ezops iac` (Infra-as-Code Multi-Cloud)
 Em qualquer repositório, execute:
 ```bash
 source .venv/bin/activate
-ezops iac .
+ezops iac . --provider aws
 ```
-O EzOps irá ler o contexto do projeto da mesma forma que o `ezops init` e criar instantaneamente um `main.tf` customizado da **AWS** (HCL do Terraform) já mapeando portas de segurança e com `user_data` de provisionamento focado em Docker.
+O EzOps irá ler o contexto do projeto da mesma forma que o `ezops init` e criar instantaneamente um `main.tf` customizado da **AWS** (HCL do Terraform) já mapeando portas de segurança e provendo instâncias EC2 focadas em rodar contenedores Docker.
+
+Para gerar a infraestrutura em outros provedores, utilize os comandos:
+- `ezops iac . --provider gcp` (Compute Engine + Firewall Rules)
+- `ezops iac . --provider azure` (Linux Virtual Machines + Network Security Groups)
 
 ---
 

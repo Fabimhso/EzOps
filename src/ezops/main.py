@@ -39,6 +39,9 @@ def init(
 def iac(
     path: str = typer.Argument(
         ".", help="O diretório do projeto para analisar e gerar a infraestrutura (Terraform)"
+    ),
+    provider: str = typer.Option(
+        "aws", help="Provedor de nuvem destino para a infraestrutura (aws, gcp, azure)"
     )
 ):
     """
@@ -46,6 +49,7 @@ def iac(
     a infraestrutura necessária na Nuvem (Ex: AWS EC2).
     """
     console.print(f"[bold blue]🚀 Iniciando EzOps IaC Generator no diretório:[/bold blue] {path}")
+    console.print(f"[bold blue]☁️  Provedor selecionado:[/bold blue] {provider.upper()}")
     
     stack_info = analyzer_engine.analyze_directory(path)
     
@@ -56,7 +60,11 @@ def iac(
     console.print(f"[bold green]✅ Stack detectada para IaC:[/bold green] {stack_info.name} (v{stack_info.version})")
     
     from ezops.generator import iac_generator
-    iac_generator.generate_terraform(path, stack_info)
+    try:
+        iac_generator.generate_terraform(path, stack_info, provider.lower())
+    except ValueError as e:
+        console.print(f"[bold red]❌ Erro:[/bold red] {e}")
+        raise typer.Exit(code=1)
     
     console.print("[bold green]✨ Arquivo main.tf gerado com sucesso![/bold green]")
     console.print("Recomendado: rode [bold yellow]terraform init && terraform apply[/bold yellow]")
