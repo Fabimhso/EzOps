@@ -1,17 +1,32 @@
 "use client";
 
 import { useState } from "react";
-import { Cloud, Save, Shield, CheckCircle2 } from "lucide-react";
+import { Cloud, Save, Shield, CheckCircle2, ChevronDown } from "lucide-react";
+
+type CloudProvider = "AWS" | "GCP" | "AZURE";
 
 export default function SettingsPage() {
+    const [provider, setProvider] = useState<CloudProvider>("AWS");
+
+    // AWS State
     const [accessKey, setAccessKey] = useState("");
     const [secretKey, setSecretKey] = useState("");
+
+    // GCP State
+    const [gcpJson, setGcpJson] = useState("");
+
+    // Azure State
+    const [tenantId, setTenantId] = useState("");
+    const [clientId, setClientId] = useState("");
+    const [clientSecret, setClientSecret] = useState("");
+    const [subId, setSubId] = useState("");
+
     const [status, setStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
     const [errorMsg, setErrorMsg] = useState("");
 
     const handleSaveAWS = async () => {
         if (!accessKey || !secretKey) {
-            setErrorMsg("Both keys are required.");
+            setErrorMsg("Both keys are required for AWS.");
             setStatus("error");
             return;
         }
@@ -27,7 +42,7 @@ export default function SettingsPage() {
 
             if (data.status === "success") {
                 setStatus("success");
-                setAccessKey(""); // clear for security
+                setAccessKey("");
                 setSecretKey("");
                 setTimeout(() => setStatus("idle"), 3000);
             } else {
@@ -35,10 +50,24 @@ export default function SettingsPage() {
             }
         } catch (e: any) {
             console.error(e);
-            setErrorMsg(e.message || "Failed to save credentials");
+            setErrorMsg(e.message || "Failed to save AWS credentials");
             setStatus("error");
         }
     };
+
+    const handleSaveMock = () => {
+        // Mock save for GCP and Azure since backend routes aren't built yet
+        setStatus("saving");
+        setTimeout(() => {
+            setStatus("success");
+            setGcpJson("");
+            setTenantId("");
+            setClientId("");
+            setClientSecret("");
+            setSubId("");
+            setTimeout(() => setStatus("idle"), 3000);
+        }, 1000);
+    }
 
     return (
         <div className="flex flex-col gap-8 max-w-4xl pb-10">
@@ -59,58 +88,141 @@ export default function SettingsPage() {
                 <div className="p-6 space-y-6">
                     <p className="text-sm text-gray-400">
                         Connect your cloud providers to allow EzOps to sync remote instances and inject secrets securely.
-                        Credentials are saved safely to your local <code className="bg-black text-blue-400 px-1 rounded">~/.aws/credentials</code> file.
+                        Credentials are saved safely to your local machine.
                     </p>
 
+                    {/* Provider Selector */}
+                    <div className="flex gap-2 p-1 bg-[#1f2937]/50 rounded-lg w-fit border border-[#374151]">
+                        {(["AWS", "GCP", "AZURE"] as CloudProvider[]).map((p) => (
+                            <button
+                                key={p}
+                                onClick={() => { setProvider(p); setStatus("idle"); setErrorMsg(""); }}
+                                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${provider === p
+                                        ? "bg-blue-600 text-white shadow"
+                                        : "text-gray-400 hover:text-white hover:bg-[#374151]"
+                                    }`}
+                            >
+                                {p}
+                            </button>
+                        ))}
+                    </div>
+
                     <div className="grid gap-6">
-                        <div className="bg-[#1f2937]/20 border border-[#374151] rounded-lg p-5 flex flex-col md:flex-row items-start justify-between gap-6">
-                            <div className="flex gap-4 w-full">
-                                <div className="mt-1 shrink-0">
-                                    <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M12.004 0C5.378 0 0 5.377 0 12c0 6.622 5.378 12 12.004 12c6.627 0 12.004-5.378 12.004-12C24.008 5.377 18.631 0 12.004 0zm5.122 17.51l-5.118-2.696-5.12 2.696.978-5.703-4.14-4.037 5.727-.832L12.004 2l2.56 5.183 5.728.832-4.144 4.037.978 5.703z" />
-                                    </svg>
-                                </div>
-                                <div className="w-full">
+                        <div className="bg-[#1f2937]/20 border border-[#374151] rounded-lg p-5 flex flex-col items-start gap-6">
+
+                            <div className="w-full flex justify-between items-start">
+                                <div>
                                     <h3 className="font-medium text-white text-lg flex items-center gap-3">
-                                        AWS Account
+                                        {provider === "AWS" && "Amazon Web Services"}
+                                        {provider === "GCP" && "Google Cloud Platform"}
+                                        {provider === "AZURE" && "Microsoft Azure"}
                                         {status === 'success' && <span className="bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded text-xs flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Connected</span>}
                                     </h3>
-                                    <p className="text-sm text-gray-400 mt-1 mb-4">Provide IAM Access Keys for Secrets Manager bridging and EC2 Sync.</p>
-
+                                    <p className="text-sm text-gray-400 mt-1 mb-4">
+                                        {provider === "AWS" && "Provide IAM Access Keys for Secrets Manager bridging."}
+                                        {provider === "GCP" && "Paste your Service Account JSON key content."}
+                                        {provider === "AZURE" && "Provide App Registration credentials for Azure."}
+                                    </p>
                                     {status === 'error' && <p className="text-red-400 text-sm mb-3">{errorMsg}</p>}
-
-                                    <div className="space-y-3 w-full max-w-sm">
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-400 mb-1">Access Key ID</label>
-                                            <input
-                                                type="text"
-                                                value={accessKey}
-                                                onChange={e => setAccessKey(e.target.value)}
-                                                placeholder="AKIAIOSFODNN7EXAMPLE"
-                                                className="w-full rounded bg-black/50 border border-[#374151] px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-400 mb-1">Secret Access Key</label>
-                                            <input
-                                                type="password"
-                                                value={secretKey}
-                                                onChange={e => setSecretKey(e.target.value)}
-                                                placeholder="••••••••••••••••"
-                                                className="w-full rounded bg-black/50 border border-[#374151] px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
-                                            />
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
-                            <div className="shrink-0 w-full md:w-auto flex justify-end">
+
+                            {/* AWS Form */}
+                            {provider === "AWS" && (
+                                <div className="space-y-4 w-full max-w-md">
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-400 mb-1">Access Key ID</label>
+                                        <input
+                                            type="text"
+                                            value={accessKey}
+                                            onChange={e => setAccessKey(e.target.value)}
+                                            placeholder="AKIAIOSFODNN7EXAMPLE"
+                                            className="w-full rounded bg-black/50 border border-[#374151] px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-400 mb-1">Secret Access Key</label>
+                                        <input
+                                            type="password"
+                                            value={secretKey}
+                                            onChange={e => setSecretKey(e.target.value)}
+                                            placeholder="••••••••••••••••"
+                                            className="w-full rounded bg-black/50 border border-[#374151] px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* GCP Form */}
+                            {provider === "GCP" && (
+                                <div className="space-y-4 w-full max-w-xl">
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-400 mb-1">Service Account JSON</label>
+                                        <textarea
+                                            value={gcpJson}
+                                            onChange={e => setGcpJson(e.target.value)}
+                                            placeholder='{\n  "type": "service_account",\n  "project_id": "my-project",\n ...\n}'
+                                            rows={6}
+                                            className="w-full rounded bg-black/50 border border-[#374151] px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors font-mono"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Azure Form */}
+                            {provider === "AZURE" && (
+                                <div className="space-y-4 w-full max-w-md">
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-400 mb-1">Tenant ID</label>
+                                        <input
+                                            type="text"
+                                            value={tenantId}
+                                            onChange={e => setTenantId(e.target.value)}
+                                            placeholder="00000000-0000-0000-0000-000000000000"
+                                            className="w-full rounded bg-black/50 border border-[#374151] px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-400 mb-1">Client ID</label>
+                                        <input
+                                            type="text"
+                                            value={clientId}
+                                            onChange={e => setClientId(e.target.value)}
+                                            placeholder="00000000-0000-0000-0000-000000000000"
+                                            className="w-full rounded bg-black/50 border border-[#374151] px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-400 mb-1">Client Secret</label>
+                                        <input
+                                            type="password"
+                                            value={clientSecret}
+                                            onChange={e => setClientSecret(e.target.value)}
+                                            placeholder="••••••••••••••••"
+                                            className="w-full rounded bg-black/50 border border-[#374151] px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-400 mb-1">Subscription ID</label>
+                                        <input
+                                            type="text"
+                                            value={subId}
+                                            onChange={e => setSubId(e.target.value)}
+                                            placeholder="00000000-0000-0000-0000-000000000000"
+                                            className="w-full rounded bg-black/50 border border-[#374151] px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="w-full flex justify-end mt-2 pt-4 border-t border-[#374151]">
                                 <button
-                                    onClick={handleSaveAWS}
+                                    onClick={provider === 'AWS' ? handleSaveAWS : handleSaveMock}
                                     disabled={status === 'saving'}
-                                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded transition"
+                                    className="flex items-center gap-2 px-6 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded transition"
                                 >
                                     <Save className="h-4 w-4" />
-                                    {status === 'saving' ? 'Connecting...' : 'Connect AWS'}
+                                    {status === 'saving' ? 'Connecting...' : `Connect ${provider}`}
                                 </button>
                             </div>
                         </div>
