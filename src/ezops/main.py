@@ -3,8 +3,13 @@ from rich.console import Console
 from ezops.analyzer import engine as analyzer_engine
 from ezops.generator import engine as generator_engine
 
-app = typer.Typer(help="EzOps CLI - Smart Containerizer and DevOps toolbox")
+app = typer.Typer(help="EzOps CLI - Smart Containerizer and DevOps toolbox", no_args_is_help=True)
 console = Console()
+
+@app.callback()
+def callback():
+    """EzOps CLI"""
+    pass
 
 @app.command()
 def init(
