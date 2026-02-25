@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { Cloud, Save, Shield, CheckCircle2, ChevronDown } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Cloud, Save, Shield, CheckCircle2, Trash2 } from "lucide-react";
 
 type CloudProvider = "AWS" | "GCP" | "AZURE";
 
 export default function SettingsPage() {
     const [provider, setProvider] = useState<CloudProvider>("AWS");
+
+    // Connected Accounts list from backend
+    const [connectedAccounts, setConnectedAccounts] = useState<any[]>([]);
 
     // AWS State
     const [accessKey, setAccessKey] = useState("");
@@ -23,6 +26,24 @@ export default function SettingsPage() {
 
     const [status, setStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
     const [errorMsg, setErrorMsg] = useState("");
+
+    const fetchConnectedAccounts = async () => {
+        try {
+            const res = await fetch("http://localhost:8080/api/settings/cloud");
+            const data = await res.json();
+            setConnectedAccounts(data.connected_accounts || []);
+        } catch (e) {
+            console.error("Failed to fetch connected accounts", e);
+        }
+    };
+
+    useEffect(() => {
+        fetchConnectedAccounts();
+    }, []);
+
+    const isConnected = (prov: string) => {
+        return connectedAccounts.some(acc => acc.provider === prov);
+    };
 
     const handleSaveAWS = async () => {
         if (!accessKey || !secretKey) {
@@ -44,6 +65,7 @@ export default function SettingsPage() {
                 setStatus("success");
                 setAccessKey("");
                 setSecretKey("");
+                await fetchConnectedAccounts();
                 setTimeout(() => setStatus("idle"), 3000);
             } else {
                 throw new Error(data.message);
@@ -55,18 +77,93 @@ export default function SettingsPage() {
         }
     };
 
-    const handleSaveMock = () => {
-        // Mock save for GCP and Azure since backend routes aren't built yet
+    const handleSaveGCP = async () => {
+        if (!gcpJson) {
+            setErrorMsg("Service Account JSON is required.");
+            setStatus("error");
+            return;
+        }
+
         setStatus("saving");
-        setTimeout(() => {
-            setStatus("success");
-            setGcpJson("");
-            setTenantId("");
-            setClientId("");
-            setClientSecret("");
-            setSubId("");
-            setTimeout(() => setStatus("idle"), 3000);
-        }, 1000);
+        try {
+            const res = await fetch("http://localhost:8080/api/settings/gcp", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ service_account_json: gcpJson })
+            });
+            const data = await res.json();
+
+            if (data.status === "success") {
+                setStatus("success");
+                setGcpJson("");
+                await fetchConnectedAccounts();
+                setTimeout(() => setStatus("idle"), 3000);
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (e: any) {
+            console.error(e);
+            setErrorMsg(e.message || "Failed to save GCP credentials");
+            setStatus("error");
+        }
+    };
+
+    const handleSaveAzure = async () => {
+        if (!tenantId || !clientId || !clientSecret || !subId) {
+            setErrorMsg("All four fields are required for Azure.");
+            setStatus("error");
+            return;
+        }
+
+        setStatus("saving");
+        try {
+            const res = await fetch("http://localhost:8080/api/settings/azure", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    tenant_id: tenantId,
+                    client_id: clientId,
+                    client_secret: clientSecret,
+                    subscription_id: subId
+                })
+            });
+            const data = await res.json();
+
+            if (data.status === "success") {
+                setStatus("success");
+                setTenantId("");
+                setClientId("");
+                setClientSecret("");
+                setSubId("");
+                await fetchConnectedAccounts();
+                setTimeout(() => setStatus("idle"), 3000);
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (e: any) {
+            console.error(e);
+            setErrorMsg(e.message || "Failed to save Azure credentials");
+            setStatus("error");
+        }
+    };
+
+    const getSaveHandler = () => {
+        if (provider === 'AWS') return handleSaveAWS;
+        if (provider === 'GCP') return handleSaveGCP;
+        return handleSaveAzure;
+    };
+
+    const handleDeleteAccount = async (prov: string) => {
+        if (!confirm(`Are you sure you want to disconnect ${prov}?`)) return;
+
+        try {
+            await fetch(`http://localhost:8080/api/settings/cloud/${prov}`, {
+                method: "DELETE"
+            });
+            await fetchConnectedAccounts();
+        } catch (e) {
+            console.error("Failed to delete account", e);
+        }
     }
 
     return (
@@ -80,9 +177,11 @@ export default function SettingsPage() {
 
             {/* Cloud Integrations Section */}
             <section className="rounded-xl border border-[#1f2937] bg-[#111827] overflow-hidden">
-                <div className="border-b border-[#1f2937] px-6 py-4 bg-[#1f2937]/30 flex items-center gap-3">
-                    <Cloud className="h-5 w-5 text-blue-400" />
-                    <h2 className="text-lg font-semibold text-white">Cloud Integrations (Sync)</h2>
+                <div className="border-b border-[#1f2937] px-6 py-4 bg-[#1f2937]/30 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <Cloud className="h-5 w-5 text-blue-400" />
+                        <h2 className="text-lg font-semibold text-white">Cloud Integrations (Sync)</h2>
+                    </div>
                 </div>
 
                 <div className="p-6 space-y-6">
@@ -91,6 +190,35 @@ export default function SettingsPage() {
                         Credentials are saved safely to your local machine.
                     </p>
 
+                    {/* Active Connections List */}
+                    {connectedAccounts.length > 0 && (
+                        <div className="mb-6">
+                            <h3 className="text-sm font-medium text-gray-300 mb-3 border-b border-[#374151] pb-2">Active Connections</h3>
+                            <div className="grid gap-3">
+                                {connectedAccounts.map((acc, i) => (
+                                    <div key={i} className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 rounded-lg">
+                                        <div className="flex items-center gap-3">
+                                            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                                            <div>
+                                                <p className="font-medium text-emerald-400">{acc.provider} <span className="text-xs text-emerald-500/70 ml-2">Connected</span></p>
+                                                <p className="text-xs text-gray-400 mt-0.5">{acc.details}</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => handleDeleteAccount(acc.provider)}
+                                            className="p-2 hover:bg-red-500/20 text-red-400 rounded transition-colors"
+                                            title="Disconnect Cloud"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <h3 className="text-sm font-medium text-gray-300 mb-2 border-b border-[#374151] pb-2">Add New Connection</h3>
+
                     {/* Provider Selector */}
                     <div className="flex gap-2 p-1 bg-[#1f2937]/50 rounded-lg w-fit border border-[#374151]">
                         {(["AWS", "GCP", "AZURE"] as CloudProvider[]).map((p) => (
@@ -98,8 +226,8 @@ export default function SettingsPage() {
                                 key={p}
                                 onClick={() => { setProvider(p); setStatus("idle"); setErrorMsg(""); }}
                                 className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${provider === p
-                                        ? "bg-blue-600 text-white shadow"
-                                        : "text-gray-400 hover:text-white hover:bg-[#374151]"
+                                    ? "bg-blue-600 text-white shadow"
+                                    : "text-gray-400 hover:text-white hover:bg-[#374151]"
                                     }`}
                             >
                                 {p}
@@ -109,14 +237,13 @@ export default function SettingsPage() {
 
                     <div className="grid gap-6">
                         <div className="bg-[#1f2937]/20 border border-[#374151] rounded-lg p-5 flex flex-col items-start gap-6">
-
                             <div className="w-full flex justify-between items-start">
                                 <div>
                                     <h3 className="font-medium text-white text-lg flex items-center gap-3">
                                         {provider === "AWS" && "Amazon Web Services"}
                                         {provider === "GCP" && "Google Cloud Platform"}
                                         {provider === "AZURE" && "Microsoft Azure"}
-                                        {status === 'success' && <span className="bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded text-xs flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Connected</span>}
+                                        {isConnected(provider) && <span className="text-xs bg-[#1f2937] px-2 py-0.5 rounded text-gray-400 border border-[#374151]">Already Configured</span>}
                                     </h3>
                                     <p className="text-sm text-gray-400 mt-1 mb-4">
                                         {provider === "AWS" && "Provide IAM Access Keys for Secrets Manager bridging."}
@@ -124,10 +251,11 @@ export default function SettingsPage() {
                                         {provider === "AZURE" && "Provide App Registration credentials for Azure."}
                                     </p>
                                     {status === 'error' && <p className="text-red-400 text-sm mb-3">{errorMsg}</p>}
+                                    {status === 'success' && <p className="text-emerald-400 text-sm mb-3">Saved locally!</p>}
                                 </div>
                             </div>
 
-                            {/* AWS Form */}
+                            {/* Forms */}
                             {provider === "AWS" && (
                                 <div className="space-y-4 w-full max-w-md">
                                     <div>
@@ -153,7 +281,6 @@ export default function SettingsPage() {
                                 </div>
                             )}
 
-                            {/* GCP Form */}
                             {provider === "GCP" && (
                                 <div className="space-y-4 w-full max-w-xl">
                                     <div>
@@ -169,7 +296,6 @@ export default function SettingsPage() {
                                 </div>
                             )}
 
-                            {/* Azure Form */}
                             {provider === "AZURE" && (
                                 <div className="space-y-4 w-full max-w-md">
                                     <div>
@@ -217,12 +343,12 @@ export default function SettingsPage() {
 
                             <div className="w-full flex justify-end mt-2 pt-4 border-t border-[#374151]">
                                 <button
-                                    onClick={provider === 'AWS' ? handleSaveAWS : handleSaveMock}
+                                    onClick={getSaveHandler()}
                                     disabled={status === 'saving'}
                                     className="flex items-center gap-2 px-6 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded transition"
                                 >
                                     <Save className="h-4 w-4" />
-                                    {status === 'saving' ? 'Connecting...' : `Connect ${provider}`}
+                                    {status === 'saving' ? `Saving ${provider}...` : (isConnected(provider) ? `Update ${provider}` : `Connect ${provider}`)}
                                 </button>
                             </div>
                         </div>

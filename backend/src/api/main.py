@@ -98,6 +98,15 @@ class AWSCreds(BaseModel):
     access_key: str
     secret_key: str
 
+class GCPCreds(BaseModel):
+    service_account_json: str
+
+class AzureCreds(BaseModel):
+    tenant_id: str
+    client_id: str
+    client_secret: str
+    subscription_id: str
+
 @app.post("/api/settings/aws")
 def save_aws_credentials(creds: AWSCreds):
     """Salva credenciais na máquina local ~/.aws/credentials para o Boto3 e o EzOps utilizarem"""
@@ -116,3 +125,92 @@ def save_aws_credentials(creds: AWSCreds):
         return {"status": "success", "message": "AWS credentials saved globally"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+@app.post("/api/settings/gcp")
+def save_gcp_credentials(creds: GCPCreds):
+    """Salva json na máquina local ~/.gcp/credentials.json"""
+    try:
+        gcp_dir = Path.home() / ".gcp"
+        gcp_dir.mkdir(parents=True, exist_ok=True)
+        credentials_file = gcp_dir / "credentials.json"
+        
+        credentials_file.write_text(creds.service_account_json)
+        return {"status": "success", "message": "GCP credentials saved globally"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+import json
+
+@app.post("/api/settings/azure")
+def save_azure_credentials(creds: AzureCreds):
+    """Salva credenciais na máquina local ~/.azure/credentials.json"""
+    try:
+        azure_dir = Path.home() / ".azure"
+        azure_dir.mkdir(parents=True, exist_ok=True)
+        credentials_file = azure_dir / "credentials.json"
+        
+        content = {
+            "tenantId": creds.tenant_id,
+            "clientId": creds.client_id,
+            "clientSecret": creds.client_secret,
+            "subscriptionId": creds.subscription_id
+        }
+        credentials_file.write_text(json.dumps(content))
+        return {"status": "success", "message": "Azure credentials saved globally"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/settings/cloud")
+def get_connected_clouds():
+    """Verifica quais provedores tem credenciais salvas no backend e retorna uma lista"""
+    connected = []
+    
+    # Check AWS
+    aws_creds = Path.home() / ".aws" / "credentials"
+    if aws_creds.exists():
+        connected.append({"provider": "AWS", "id": "aws-default", "details": "IAM Access Keys"})
+        
+    # Check GCP
+    gcp_creds = Path.home() / ".gcp" / "credentials.json"
+    if gcp_creds.exists():
+        connected.append({"provider": "GCP", "id": "gcp-default", "details": "Service Account JSON"})
+        
+    # Check Azure
+    az_creds = Path.home() / ".azure" / "credentials.json"
+    if az_creds.exists():
+        connected.append({"provider": "AZURE", "id": "azure-default", "details": "App Registration (SPN)"})
+        
+    return {"connected_accounts": connected}
+
+@app.delete("/api/settings/cloud/{provider}")
+def delete_cloud_connection(provider: str):
+    """Exclui a credencial salva para um provedor específico"""
+    provider = provider.upper()
+    
+    try:
+        if provider == "AWS":
+            aws_creds = Path.home() / ".aws" / "credentials"
+            if aws_creds.exists():
+                aws_creds.unlink() # Delete the file
+                global aws_client
+                aws_client = AWSService()
+                return {"status": "success", "message": "AWS credentials removed"}
+            return {"status": "error", "message": "No AWS credentials found to delete"}
+            
+        elif provider == "GCP":
+            gcp_creds = Path.home() / ".gcp" / "credentials.json"
+            if gcp_creds.exists():
+                gcp_creds.unlink()
+                return {"status": "success", "message": "GCP credentials removed"}
+            return {"status": "error", "message": "No GCP credentials found to delete"}
+            
+        elif provider == "AZURE":
+            az_creds = Path.home() / ".azure" / "credentials.json"
+            if az_creds.exists():
+                az_creds.unlink()
+                return {"status": "success", "message": "Azure credentials removed"}
+            return {"status": "error", "message": "No Azure credentials found to delete"}
+    except Exception as e:
+        return {"status": "error", "message": f"Server Error: {str(e)}"}
+        
+    return {"status": "error", "message": f"Deletion not implemented for {provider}"}
