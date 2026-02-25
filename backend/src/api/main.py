@@ -107,9 +107,27 @@ class AzureCreds(BaseModel):
     client_secret: str
     subscription_id: str
 
+import boto3
+import json
+from google.oauth2 import service_account
+from google.auth.exceptions import DefaultCredentialsError
+from azure.identity import ClientSecretCredential
+from azure.core.exceptions import ClientAuthenticationError
+
 @app.post("/api/settings/aws")
 def save_aws_credentials(creds: AWSCreds):
-    """Salva credenciais na máquina local ~/.aws/credentials para o Boto3 e o EzOps utilizarem"""
+    """Valida e Salva credenciais na máquina local ~/.aws/credentials"""
+    try:
+        # Validate AWS Credentials
+        sts = boto3.client(
+            'sts',
+            aws_access_key_id=creds.access_key,
+            aws_secret_access_key=creds.secret_key,
+        )
+        sts.get_caller_identity()
+    except Exception as e:
+        return {"status": "error", "message": f"Invalid AWS Credentials: {e}"}
+
     try:
         aws_dir = Path.home() / ".aws"
         aws_dir.mkdir(parents=True, exist_ok=True)
@@ -118,32 +136,45 @@ def save_aws_credentials(creds: AWSCreds):
         content = f"[default]\naws_access_key_id = {creds.access_key}\naws_secret_access_key = {creds.secret_key}\n"
         credentials_file.write_text(content)
         
-        # Reset aws_client so it picks up the new credentials on the next request
         global aws_client
         aws_client = AWSService()
-        
         return {"status": "success", "message": "AWS credentials saved globally"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
 @app.post("/api/settings/gcp")
 def save_gcp_credentials(creds: GCPCreds):
-    """Salva json na máquina local ~/.gcp/credentials.json"""
+    """Valida e Salva json na máquina local ~/.gcp/credentials.json"""
+    try:
+        # Validate GCP JSON format and authenticity
+        service_info = json.loads(creds.service_account_json)
+        credentials = service_account.Credentials.from_service_account_info(service_info)
+    except Exception as e:
+        return {"status": "error", "message": f"Invalid GCP Service Account JSON: {e}"}
+
     try:
         gcp_dir = Path.home() / ".gcp"
         gcp_dir.mkdir(parents=True, exist_ok=True)
         credentials_file = gcp_dir / "credentials.json"
-        
         credentials_file.write_text(creds.service_account_json)
         return {"status": "success", "message": "GCP credentials saved globally"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-import json
-
 @app.post("/api/settings/azure")
 def save_azure_credentials(creds: AzureCreds):
-    """Salva credenciais na máquina local ~/.azure/credentials.json"""
+    """Valida e Salva credenciais na máquina local ~/.azure/credentials.json"""
+    try:
+        # Validate Azure Active Directory App Registration Credentials
+        credential = ClientSecretCredential(
+            tenant_id=creds.tenant_id,
+            client_id=creds.client_id,
+            client_secret=creds.client_secret
+        )
+        credential.get_token("https://management.azure.com/.default")
+    except Exception as e:
+        return {"status": "error", "message": f"Azure validation failed: {str(e)}"}
+
     try:
         azure_dir = Path.home() / ".azure"
         azure_dir.mkdir(parents=True, exist_ok=True)
