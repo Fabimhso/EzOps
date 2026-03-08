@@ -40,22 +40,28 @@ The DevOps/MLOps routine often involves hours spent on manual and repetitive tas
 
  **Simple ML Model Serving:** Makes packaging and deploying Machine Learning models (via FastAPI + Docker) painless, without dependency struggles.
 
-### 3. Rodando as integrações AWS (MVP 3 Phase 2)
-O Backend do EzOps agora possui integração nativa com a AWS via `boto3`.
-Ao bater na rota `http://localhost:8080/api/containers`, as instâncias EC2 gerenciadas por você na sua conta serão retornadas junto com seus containers locais na aba **Containers** do Front-End.
-Caso as credenciais não estejam configuradas em `~/.aws/credentials`, ele irá silenciar o erro e listar apenas os da máquina.
+### 3. Running AWS Integrations (MVP 3 Phase 2)
+
+The EzOps Backend now has native integration with AWS through `boto3`.
+When accessing the route `http://localhost:8080/api/containers`, the EC2 instances managed in your AWS account will be returned along with your local containers in the **Containers** tab of the Front-End.
+
+If the credentials are not configured in `~/.aws/credentials`, the system will silently ignore the error and list only the containers from the local machine.
 
 ---
 
-## 🛠 Entendendo o `ezops iac` (Infra-as-Code Multi-Cloud)
-Em qualquer repositório, execute:
+## 🛠 Understanding `ezops iac` (Multi-Cloud Infrastructure-as-Code)
+
+In any repository, run:
+
 ```bash
 source .venv/bin/activate
 ezops iac . --provider aws
 ```
-O EzOps irá ler o contexto do projeto da mesma forma que o `ezops init` e criar instantaneamente um `main.tf` customizado da **AWS** (HCL do Terraform) já mapeando portas de segurança e provendo instâncias EC2 focadas em rodar contenedores Docker.
 
-Para gerar a infraestrutura em outros provedores, utilize os comandos:
+EzOps will read the project context in the same way as `ezops init` and instantly generate a customized **AWS** `main.tf` (Terraform HCL), already mapping security ports and provisioning EC2 instances designed to run Docker containers.
+
+To generate infrastructure for other providers, use the following commands:
+
 - `ezops iac . --provider gcp` (Compute Engine + Firewall Rules)
 - `ezops iac . --provider azure` (Linux Virtual Machines + Network Security Groups)
 
